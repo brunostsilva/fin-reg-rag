@@ -36,6 +36,23 @@ class PgVectorStore:
                 """
             ).format(dimension=sql.Literal(int(dimension)))
         )
+        self._check_existing_dimension()
+
+    def _check_existing_dimension(self) -> None:
+        # For the pgvector `vector(n)` type, atttypmod holds n.
+        row = self._conn.execute(
+            """
+            SELECT atttypmod FROM pg_attribute
+            WHERE attrelid = 'document_chunks'::regclass AND attname = 'embedding'
+            """
+        ).fetchone()
+        existing = row[0] if row else None
+        if existing is not None and existing != self._dimension:
+            raise ValueError(
+                f"Table document_chunks stores vectors of dimension {existing}, but the configured "
+                f"embeddings provider produces dimension {self._dimension}. Drop or migrate the "
+                "table and re-ingest, or switch back to the original provider."
+            )
 
     def add(self, embeddings: np.ndarray, texts: list[str], sources: list[str], chunk_indices: list[int]) -> None:
         if len(texts) == 0:

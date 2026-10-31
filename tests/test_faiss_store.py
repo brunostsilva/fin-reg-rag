@@ -52,6 +52,16 @@ def test_persist_and_reload_preserves_data(tmp_path) -> None:
     assert results[0].text == "persisted doc"
 
 
+def test_loading_index_with_different_dimension_fails_fast(tmp_path) -> None:
+    index_path = str(tmp_path / "index.faiss")
+    store = FaissVectorStore(dimension=4, index_path=index_path)
+    store.add(np.eye(1, 4, dtype=np.float32), texts=["a"], sources=["a.md"], chunk_indices=[0])
+    store.persist()
+
+    with pytest.raises(ValueError, match="dimension 4"):
+        FaissVectorStore(dimension=8, index_path=index_path)
+
+
 def test_delete_source_removes_only_its_chunks_and_keeps_metadata_aligned(tmp_path) -> None:
     store = FaissVectorStore(dimension=4, index_path=str(tmp_path / "index.faiss"))
     store.add(

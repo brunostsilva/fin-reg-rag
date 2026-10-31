@@ -26,7 +26,14 @@ class FaissVectorStore:
 
     def _load_if_exists(self) -> None:
         if os.path.exists(self._index_path) and os.path.exists(self._metadata_path):
-            self._index = faiss.read_index(self._index_path)
+            index = faiss.read_index(self._index_path)
+            if index.d != self._dimension:
+                raise ValueError(
+                    f"FAISS index at {self._index_path!r} has dimension {index.d}, but the configured "
+                    f"embeddings provider produces dimension {self._dimension}. Delete the index "
+                    "(and its .meta.json) and re-ingest, or switch back to the original provider."
+                )
+            self._index = index
             with open(self._metadata_path, encoding="utf-8") as f:
                 self._metadata = json.load(f)
 
