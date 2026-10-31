@@ -1,3 +1,5 @@
+import threading
+
 import numpy as np
 import pytest
 
@@ -85,6 +87,34 @@ def test_delete_unknown_source_is_a_noop(tmp_path) -> None:
 
     assert store.delete_source("missing.md") == 0
     assert store.count() == 1
+
+
+def test_concurrent_add_and_search_do_not_raise(tmp_path) -> None:
+    store = FaissVectorStore(dimension=4, index_path=str(tmp_path / "index.faiss"))
+    errors: list[Exception] = []
+
+    def writer() -> None:
+        try:
+            for i in range(200):
+                store.add(np.eye(1, 4, dtype=np.float32), texts=[f"t{i}"], sources=["s.md"], chunk_indices=[i])
+        except Exception as exc:
+            errors.append(exc)
+
+    def reader() -> None:
+        try:
+            for _ in range(200):
+                store.search(np.array([1.0, 0.0, 0.0, 0.0], dtype=np.float32), top_k=3)
+        except Exception as exc:
+            errors.append(exc)
+
+    threads = [threading.Thread(target=writer), threading.Thread(target=reader), threading.Thread(target=reader)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert errors == []
+    assert store.count() == 200
 
 
 @pytest.mark.parametrize("top_k", [1, 2, 5])
