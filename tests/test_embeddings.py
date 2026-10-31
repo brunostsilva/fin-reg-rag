@@ -1,6 +1,23 @@
 import numpy as np
+import pytest
 
-from finregrag.core.embeddings import LocalHashEmbeddings
+from finregrag.core.embeddings import LocalHashEmbeddings, OpenAIEmbeddings
+
+
+@pytest.mark.parametrize(
+    ("model", "expected"),
+    [("text-embedding-3-small", 1536), ("text-embedding-3-large", 3072)],
+)
+def test_openai_embeddings_dimension_follows_known_model(model: str, expected: int) -> None:
+    assert OpenAIEmbeddings(model=model, api_key="sk-test").dimension == expected
+
+
+def test_openai_embeddings_probes_dimension_for_unknown_model(monkeypatch) -> None:
+    from langchain_openai import OpenAIEmbeddings as LangchainOpenAIEmbeddings
+
+    monkeypatch.setattr(LangchainOpenAIEmbeddings, "embed_query", lambda self, text: [0.0] * 256)
+
+    assert OpenAIEmbeddings(model="some-future-model", api_key="sk-test").dimension == 256
 
 
 def test_embed_query_is_deterministic() -> None:

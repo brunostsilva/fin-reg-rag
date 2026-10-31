@@ -8,6 +8,12 @@ import numpy as np
 
 _TOKEN_RE = re.compile(r"[a-zA-ZÀ-ÿ0-9]+")
 
+_OPENAI_EMBEDDING_DIMENSIONS = {
+    "text-embedding-3-small": 1536,
+    "text-embedding-3-large": 3072,
+    "text-embedding-ada-002": 1536,
+}
+
 
 class EmbeddingsProvider(Protocol):
     dimension: int
@@ -57,11 +63,12 @@ class OpenAIEmbeddings:
     actually selected (LLM_PROVIDER/EMBEDDINGS_PROVIDER configuration).
     """
 
-    def __init__(self, model: str, api_key: str, dimension: int = 1536) -> None:
+    def __init__(self, model: str, api_key: str) -> None:
         from langchain_openai import OpenAIEmbeddings as LangchainOpenAIEmbeddings
 
         self._client = LangchainOpenAIEmbeddings(model=model, api_key=api_key)
-        self.dimension = dimension
+        known = _OPENAI_EMBEDDING_DIMENSIONS.get(model)
+        self.dimension = known if known is not None else len(self._client.embed_query("dimension probe"))
 
     def embed_documents(self, texts: list[str]) -> np.ndarray:
         if not texts:
