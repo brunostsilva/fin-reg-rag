@@ -28,6 +28,8 @@ class RagPipeline:
         self._top_k = top_k
 
     def ingest(self, text: str, source: str, chunk_size: int, chunk_overlap: int) -> int:
+        """Index `text` under `source`, replacing any chunks previously indexed for it."""
+        self._vector_store.delete_source(source)
         chunks = chunk_document(text, source=source, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
         if not chunks:
             return 0

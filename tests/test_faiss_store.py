@@ -52,6 +52,31 @@ def test_persist_and_reload_preserves_data(tmp_path) -> None:
     assert results[0].text == "persisted doc"
 
 
+def test_delete_source_removes_only_its_chunks_and_keeps_metadata_aligned(tmp_path) -> None:
+    store = FaissVectorStore(dimension=4, index_path=str(tmp_path / "index.faiss"))
+    store.add(
+        np.eye(4, dtype=np.float32),
+        texts=["a0", "b0", "a1", "c0"],
+        sources=["a.md", "b.md", "a.md", "c.md"],
+        chunk_indices=[0, 0, 1, 0],
+    )
+
+    removed = store.delete_source("a.md")
+
+    assert removed == 2
+    assert store.count() == 2
+    assert store.search(np.array([0.0, 1.0, 0.0, 0.0], dtype=np.float32), top_k=1)[0].text == "b0"
+    assert store.search(np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32), top_k=1)[0].text == "c0"
+
+
+def test_delete_unknown_source_is_a_noop(tmp_path) -> None:
+    store = FaissVectorStore(dimension=4, index_path=str(tmp_path / "index.faiss"))
+    store.add(np.eye(1, 4, dtype=np.float32), texts=["a"], sources=["a.md"], chunk_indices=[0])
+
+    assert store.delete_source("missing.md") == 0
+    assert store.count() == 1
+
+
 @pytest.mark.parametrize("top_k", [1, 2, 5])
 def test_search_never_returns_more_than_top_k(tmp_path, top_k: int) -> None:
     store = FaissVectorStore(dimension=4, index_path=str(tmp_path / "index.faiss"))

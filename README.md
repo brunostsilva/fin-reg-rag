@@ -194,8 +194,9 @@ All configuration is environment-variable driven (see `src/finregrag/config.py` 
 ## API reference
 
 ### `POST /ingest`
-Loads and indexes every `.md`/`.txt` file in `DOCS_DIR`. Returns how many documents and
-chunks were indexed.
+Loads and indexes every `.md`/`.txt` file in `DOCS_DIR`, then persists the index (FAISS).
+Re-ingesting a document replaces its previously indexed chunks instead of duplicating them, so
+the endpoint is safe to call repeatedly. Returns how many documents and chunks were indexed.
 
 ### `POST /query`
 ```json

@@ -43,6 +43,17 @@ class FaissVectorStore:
         for text, source, chunk_index in zip(texts, sources, chunk_indices):
             self._metadata.append({"text": text, "source": source, "chunk_index": chunk_index})
 
+    def delete_source(self, source: str) -> int:
+        positions = [i for i, meta in enumerate(self._metadata) if meta["source"] == source]
+        if not positions:
+            return 0
+        # Flat indexes compact on removal while preserving order, so the
+        # metadata list stays aligned with index positions.
+        self._index.remove_ids(np.array(positions, dtype=np.int64))
+        removed = set(positions)
+        self._metadata = [meta for i, meta in enumerate(self._metadata) if i not in removed]
+        return len(positions)
+
     def search(self, query_embedding: np.ndarray, top_k: int) -> list[RetrievedChunk]:
         if self._index.ntotal == 0:
             return []

@@ -50,6 +50,11 @@ class PgVectorStore:
                     (text, source, chunk_index, embedding),
                 )
 
+    def delete_source(self, source: str) -> int:
+        with self._conn.cursor() as cur:
+            cur.execute("DELETE FROM document_chunks WHERE source = %s", (source,))
+            return cur.rowcount
+
     def search(self, query_embedding: np.ndarray, top_k: int) -> list[RetrievedChunk]:
         with self._conn.cursor() as cur:
             cur.execute(
