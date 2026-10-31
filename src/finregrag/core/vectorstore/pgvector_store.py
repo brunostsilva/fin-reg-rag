@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 import psycopg
 from pgvector.psycopg import register_vector
+from psycopg import sql
 
 from finregrag.core.vectorstore.base import RetrievedChunk
 
@@ -20,17 +21,20 @@ class PgVectorStore:
         self._conn = psycopg.connect(dsn, autocommit=True)
         self._conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
         register_vector(self._conn)
+        # DDL can't take bound parameters (psycopg 3 binds server-side), so the
+        # dimension is rendered as a SQL literal instead.
         self._conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS document_chunks (
-                id SERIAL PRIMARY KEY,
-                text TEXT NOT NULL,
-                source TEXT NOT NULL,
-                chunk_index INTEGER NOT NULL,
-                embedding VECTOR(%s) NOT NULL
-            )
-            """,
-            (dimension,),
+            sql.SQL(
+                """
+                CREATE TABLE IF NOT EXISTS document_chunks (
+                    id SERIAL PRIMARY KEY,
+                    text TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    chunk_index INTEGER NOT NULL,
+                    embedding VECTOR({dimension}) NOT NULL
+                )
+                """
+            ).format(dimension=sql.Literal(int(dimension)))
         )
 
     def add(self, embeddings: np.ndarray, texts: list[str], sources: list[str], chunk_indices: list[int]) -> None:
