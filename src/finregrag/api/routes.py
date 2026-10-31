@@ -45,6 +45,7 @@ def ingest(
             chunk_size=settings.chunk_size,
             chunk_overlap=settings.chunk_overlap,
         )
+    pipeline.persist()
     return IngestResponse(
         documents_loaded=len(documents),
         chunks_indexed=total_chunks,

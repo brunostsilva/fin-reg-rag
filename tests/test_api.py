@@ -1,7 +1,10 @@
+import os
+
 from fastapi.testclient import TestClient
 
+from finregrag.config import Settings, get_settings
 from finregrag.core.rag_pipeline import RagPipeline
-from finregrag.dependencies import get_pipeline
+from finregrag.dependencies import build_pipeline, get_pipeline
 from finregrag.main import app
 
 
@@ -39,3 +42,19 @@ def test_query_endpoint_validates_empty_question(ingested_pipeline: RagPipeline)
     response = client.post("/query", json={"question": ""})
 
     assert response.status_code == 422
+
+
+def test_ingest_endpoint_persists_faiss_index(tmp_path) -> None:
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+    (docs_dir / "pix.md").write_text("# Limits\n\nNighttime limit is R$ 1,000.00.", encoding="utf-8")
+    index_path = str(tmp_path / "index" / "faiss_index")
+    settings = Settings(docs_dir=str(docs_dir), faiss_index_path=index_path)
+    app.dependency_overrides[get_settings] = lambda: settings
+    client = make_client(build_pipeline(settings))
+
+    response = client.post("/ingest")
+
+    assert response.status_code == 200
+    assert os.path.exists(index_path)
+    assert build_pipeline(settings).document_count() == response.json()["total_chunks_in_store"]
