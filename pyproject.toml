@@ -18,8 +18,8 @@ dependencies = [
     "langchain-openai>=0.2",
     "faiss-cpu>=1.8",
     "numpy>=1.26",
-    "psycopg[binary]>=3.2",
-    "pgvector>=0.3",
+    "psycopg[binary]>=3.3.6",
+    "pgvector>=0.5.1",
     "python-dotenv>=1.0",
 ]
 
