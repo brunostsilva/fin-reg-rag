@@ -103,7 +103,7 @@ fin-reg-rag/
 
 ## Quickstart (local, no API keys needed)
 
-Requires Python 3.9+.
+Requires Python 3.12+ (the same version as the Docker image).
 
 ```bash
 python3 -m venv .venv
@@ -216,7 +216,11 @@ pytest -v
 
 The test suite always uses the offline `fake` LLM provider, the `local` hashing embedder, and
 a temporary FAISS index — no network access or API key is required, which is also how CI
-(`.github/workflows/ci.yml`) runs it across Python 3.9 and 3.12.
+(`.github/workflows/ci.yml`) runs it across Python 3.12 and 3.13.
+
+Dependencies are kept up to date by Dependabot (`.github/dependabot.yml`). It runs weekly, groups
+packages that must move together (LangChain, FastAPI/Pydantic, Postgres, test tools), and raises
+the `>=` floors in `pyproject.toml`, so every upgrade is tested by CI in a PR before it reaches `main`.
 
 ## Known limitations
 

@@ -1,0 +1,51 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    # pyproject.toml declares lower bounds (">="), which already accept any newer release, so with the
+    # default strategy Dependabot would have nothing to bump and a new major would only surface as a
+    # broken main. "increase" raises the floor on every release instead, so each upgrade arrives as a
+    # PR that CI tests first.
+    versioning-strategy: increase
+    groups:
+      # Packages that must move together because they constrain each other's versions
+      # (e.g. langchain-openai requires a matching langchain-core). Majors included.
+      langchain:
+        patterns: ["langchain*"]
+      api-stack:
+        patterns: ["fastapi", "uvicorn", "pydantic", "pydantic-settings"]
+      postgres:
+        patterns: ["psycopg", "pgvector"]
+      test-tools:
+        patterns: ["pytest*", "httpx"]
+      # Everything else: minor/patch bumps in one weekly PR; other majors stay individual.
+      python-minor-and-patch:
+        update-types: [minor, patch]
+    commit-message:
+      prefix: build
+      include: scope
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: build
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      github-actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+      include: scope
