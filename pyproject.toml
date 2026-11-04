@@ -9,10 +9,10 @@ description = "RAG service for querying financial/payments regulation documents,
 requires-python = ">=3.12"
 readme = "README.md"
 dependencies = [
-    "fastapi>=0.115",
-    "uvicorn[standard]>=0.30",
-    "pydantic>=2.8",
-    "pydantic-settings>=2.4",
+    "fastapi>=0.162.0",
+    "uvicorn[standard]>=0.54.0",
+    "pydantic>=2.14.2",
+    "pydantic-settings>=2.16.2",
     "langchain-core>=0.3",
     "langchain-text-splitters>=0.3",
     "langchain-openai>=0.2",
