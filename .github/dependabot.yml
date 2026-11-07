@@ -21,7 +21,7 @@ updates:
       postgres:
         patterns: ["psycopg", "pgvector"]
       test-tools:
-        patterns: ["pytest*", "httpx"]
+        patterns: ["pytest*", "httpx", "testcontainers"]
       # Everything else: minor/patch bumps in one weekly PR; other majors stay individual.
       python-minor-and-patch:
         update-types: [minor, patch]
