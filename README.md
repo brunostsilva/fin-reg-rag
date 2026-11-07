@@ -226,7 +226,8 @@ a temporary FAISS index — no API key is required, which is also how CI
 - **Configuration:** defaults, environment variables, `.env` and invalid values.
 - **pgvector:** `PgVectorStore` against a real Postgres with the pgvector extension
   (`pgvector/pgvector:pg16`, the Docker Compose image), started by
-  [Testcontainers](https://testcontainers.com/). These tests need Docker and are skipped without it.
+  [Testcontainers](https://testcontainers.com/). These tests need Docker and are skipped without it,
+  except in CI, where `REQUIRE_DOCKER=1` makes them fail instead so they can't be skipped silently.
 
 Dependencies are kept up to date by Dependabot (`.github/dependabot.yml`). It runs weekly, groups
 packages that must move together (LangChain, FastAPI/Pydantic, Postgres, test tools), and raises

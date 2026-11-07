@@ -1,7 +1,10 @@
 """PgVectorStore against a real Postgres with the pgvector extension, started by Testcontainers.
 
-Skipped when Docker isn't available; GitHub Actions runners have it.
+Skipped when Docker isn't available, unless REQUIRE_DOCKER=1 (set in CI): then they fail instead,
+so losing Docker in CI can't silently turn these tests into skips.
 """
+
+import os
 
 import numpy as np
 import psycopg
@@ -23,11 +26,20 @@ def _docker_available() -> bool:
         return False
 
 
-pytestmark = pytest.mark.skipif(not _docker_available(), reason="needs Docker for the Postgres + pgvector container")
+_DOCKER_AVAILABLE = _docker_available()
+_DOCKER_REQUIRED = os.environ.get("REQUIRE_DOCKER") == "1"
+
+pytestmark = pytest.mark.skipif(
+    not _DOCKER_AVAILABLE and not _DOCKER_REQUIRED,
+    reason="needs Docker for the Postgres + pgvector container",
+)
 
 
 @pytest.fixture(scope="module")
 def postgres_dsn():
+    if not _DOCKER_AVAILABLE:
+        pytest.fail("REQUIRE_DOCKER=1 but Docker is not available", pytrace=False)
+
     from testcontainers.community.postgres import PostgresContainer
 
     with PostgresContainer(PGVECTOR_IMAGE, driver=None) as postgres:
