@@ -1,5 +1,6 @@
 import os
 
+import pytest
 from fastapi.testclient import TestClient
 
 from finregrag.config import Settings, get_settings
@@ -42,6 +43,24 @@ def test_query_endpoint_validates_empty_question(ingested_pipeline: RagPipeline)
     response = client.post("/query", json={"question": ""})
 
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize("top_k", [0, 21])
+def test_query_endpoint_rejects_top_k_out_of_range(ingested_pipeline: RagPipeline, top_k: int) -> None:
+    client = make_client(ingested_pipeline)
+
+    response = client.post("/query", json={"question": "What is the nighttime transaction limit?", "top_k": top_k})
+
+    assert response.status_code == 422
+
+
+def test_query_endpoint_honours_top_k(ingested_pipeline: RagPipeline) -> None:
+    client = make_client(ingested_pipeline)
+
+    response = client.post("/query", json={"question": "What is the nighttime transaction limit?", "top_k": 1})
+
+    assert response.status_code == 200
+    assert len(response.json()["sources"]) == 1
 
 
 def test_ingest_endpoint_persists_faiss_index(tmp_path) -> None:

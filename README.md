@@ -36,8 +36,8 @@ Postgres-backed deployment.
   most relevant retrieved passage — no API key needed) or OpenAI chat completions.
 - **Source-attributed answers**: every response includes the retrieved chunks, their source
   document, and similarity score.
-- **Fully offline test suite** (20+ tests) that never hits a network call or requires an API
-  key, so it runs the same way locally and in CI.
+- **Test suite without API keys** that never calls an LLM or embeddings API, so it runs the same
+  way locally and in CI, plus Postgres/pgvector integration tests in a throwaway container.
 - **Dockerized**, with a `docker-compose.yml` that wires the API to a Postgres/pgvector
   instance.
 
@@ -95,7 +95,7 @@ fin-reg-rag/
 │       └── loader.py           # Loads .md/.txt documents from disk
 ├── scripts/ingest.py           # CLI to (re)index documents without the API
 ├── data/sample_docs/           # Synthetic sample regulation documents
-├── tests/                      # Fully offline test suite (pytest)
+├── tests/                      # Test suite (pytest), no API keys needed
 ├── docker-compose.yml          # API + Postgres/pgvector
 ├── Dockerfile
 └── example.env                 # Copy to .env to configure the service
@@ -215,8 +215,18 @@ pytest -v
 ```
 
 The test suite always uses the offline `fake` LLM provider, the `local` hashing embedder, and
-a temporary FAISS index — no network access or API key is required, which is also how CI
-(`.github/workflows/ci.yml`) runs it across Python 3.12 and 3.13.
+a temporary FAISS index — no API key is required, which is also how CI
+(`.github/workflows/ci.yml`) runs it across Python 3.12 and 3.13. It covers:
+
+- **Pipeline and API:** chunking, embeddings, FAISS (persistence, deletes, concurrency), retrieval,
+  and the HTTP endpoints, including request validation (`top_k` between 1 and 20).
+- **OpenAI adapter:** the prompt sent to the model (system prompt, context with sources, question)
+  and plain-text answers even when the model replies with content blocks, with the OpenAI call
+  replaced, so nothing goes over the network.
+- **Configuration:** defaults, environment variables, `.env` and invalid values.
+- **pgvector:** `PgVectorStore` against a real Postgres with the pgvector extension
+  (`pgvector/pgvector:pg16`, the Docker Compose image), started by
+  [Testcontainers](https://testcontainers.com/). These tests need Docker and are skipped without it.
 
 Dependencies are kept up to date by Dependabot (`.github/dependabot.yml`). It runs weekly, groups
 packages that must move together (LangChain, FastAPI/Pydantic, Postgres, test tools), and raises
