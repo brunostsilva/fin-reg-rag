@@ -20,7 +20,7 @@ dependencies = [
     "numpy>=1.26",
     "psycopg[binary]>=3.3.8",
     "pgvector>=0.5.1",
-    "python-dotenv>=1.0",
+    "python-dotenv>=1.2.4",
 ]
 
 [project.optional-dependencies]
