@@ -16,6 +16,9 @@ _OPENAI_EMBEDDING_DIMENSIONS = {
 
 
 class EmbeddingsProvider(Protocol):
+    """Embeds texts as float32 vectors (FAISS and pgvector both store float32): `embed_documents`
+    returns one row per text, shape (len(texts), dimension), even for no texts."""
+
     dimension: int
 
     def embed_documents(self, texts: list[str]) -> np.ndarray: ...
@@ -50,7 +53,9 @@ class LocalHashEmbeddings:
         return vector
 
     def embed_documents(self, texts: list[str]) -> np.ndarray:
-        return np.stack([self._vectorize(t) for t in texts]) if texts else np.empty((0, self.dimension))
+        if not texts:
+            return np.empty((0, self.dimension), dtype=np.float32)
+        return np.stack([self._vectorize(t) for t in texts])
 
     def embed_query(self, text: str) -> np.ndarray:
         return self._vectorize(text)
@@ -72,7 +77,7 @@ class OpenAIEmbeddings:
 
     def embed_documents(self, texts: list[str]) -> np.ndarray:
         if not texts:
-            return np.empty((0, self.dimension))
+            return np.empty((0, self.dimension), dtype=np.float32)
         return np.array(self._client.embed_documents(texts), dtype=np.float32)
 
     def embed_query(self, text: str) -> np.ndarray:

@@ -43,6 +43,23 @@ def test_dotenv_is_read_and_the_environment_takes_precedence(monkeypatch, tmp_pa
     # unknown keys in .env are ignored (extra="ignore") instead of failing
 
 
+def test_dotenv_values_can_be_quoted_commented_and_exported(tmp_path) -> None:
+    # pydantic-settings reads .env through python-dotenv: the usual .env syntax must keep working.
+    (tmp_path / ".env").write_text(
+        "# local settings\n"
+        'OPENAI_API_KEY="sk-test#not-a-comment"  # quoted, so this # is part of the value\n'
+        "TOP_K=6 # an inline comment\n"
+        "export CHUNK_SIZE=650\n",
+        encoding="utf-8",
+    )
+
+    settings = Settings()
+
+    assert settings.openai_api_key == "sk-test#not-a-comment"
+    assert settings.top_k == 6
+    assert settings.chunk_size == 650
+
+
 def test_invalid_numbers_are_rejected(monkeypatch) -> None:
     monkeypatch.setenv("TOP_K", "many")
 

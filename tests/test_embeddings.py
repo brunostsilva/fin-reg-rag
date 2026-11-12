@@ -56,3 +56,34 @@ def test_embed_documents_empty_list_returns_empty_array() -> None:
     result = embedder.embed_documents([])
 
     assert result.shape == (0, 64)
+
+
+@pytest.mark.parametrize("texts", [[], ["one text"], ["first", "second", "third"]])
+def test_local_embeddings_are_float32_with_one_row_per_text(texts: list[str]) -> None:
+    # FAISS and pgvector store float32: the dtype must not depend on the input (an empty list used
+    # to come back as float64, NumPy's default).
+    result = LocalHashEmbeddings(dimension=64).embed_documents(texts)
+
+    assert result.dtype == np.float32
+    assert result.shape == (len(texts), 64)
+
+
+def test_local_query_embedding_is_float32() -> None:
+    assert LocalHashEmbeddings(dimension=64).embed_query("pix limits").dtype == np.float32
+
+
+def test_openai_embeddings_turns_the_client_vectors_into_float32_arrays(monkeypatch) -> None:
+    from langchain_openai import OpenAIEmbeddings as LangchainOpenAIEmbeddings
+
+    monkeypatch.setattr(LangchainOpenAIEmbeddings, "embed_query", lambda self, text: [0.1, 0.2, 0.3])
+    monkeypatch.setattr(LangchainOpenAIEmbeddings, "embed_documents", lambda self, texts: [[0.5, 0.25, 0.125]] * len(texts))
+    embedder = OpenAIEmbeddings(model="some-future-model", api_key="sk-test")  # dimension probed: 3
+
+    documents = embedder.embed_documents(["a", "b"])
+    query = embedder.embed_query("q")
+    empty = embedder.embed_documents([])
+
+    assert (documents.dtype, documents.shape) == (np.float32, (2, 3))
+    assert (query.dtype, query.shape) == (np.float32, (3,))
+    assert (empty.dtype, empty.shape) == (np.float32, (0, 3))
+    np.testing.assert_allclose(documents[1], [0.5, 0.25, 0.125])
