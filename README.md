@@ -103,7 +103,7 @@ fin-reg-rag/
 
 ## Quickstart (local, no API keys needed)
 
-Requires Python 3.12+ (the same version as the Docker image).
+Requires Python 3.12+ (CI tests 3.12, 3.13 and 3.14; the Docker image uses 3.14).
 
 ```bash
 python3 -m venv .venv
@@ -216,12 +216,14 @@ pytest -v
 
 The test suite always uses the offline `fake` LLM provider, the `local` hashing embedder, and
 a temporary FAISS index — no API key is required, which is also how CI
-(`.github/workflows/ci.yml`) runs it across Python 3.12 and 3.13. It covers:
+(`.github/workflows/ci.yml`) runs it across Python 3.12, 3.13 and 3.14. It covers:
 
 - **Pipeline and API:** chunking, embeddings, FAISS (persistence, deletes, concurrency), retrieval,
-  and the HTTP endpoints, including request validation (`top_k` between 1 and 20).
+  and the HTTP endpoints, including request validation (`top_k` between 1 and 20), through both the
+  sync `TestClient` and an async `httpx` client (pytest-asyncio).
 - **OpenAI adapter:** the prompt sent to the model (system prompt, context with sources, question)
-  and plain-text answers even when the model replies with content blocks, with the OpenAI call
+  and plain-text answers even when the model replies with content blocks (non-text blocks such as
+  reasoning or tool calls are dropped), with the OpenAI call
   replaced, so nothing goes over the network.
 - **Configuration:** defaults, environment variables, `.env` and invalid values.
 - **pgvector:** `PgVectorStore` against a real Postgres with the pgvector extension
