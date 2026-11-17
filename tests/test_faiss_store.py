@@ -81,6 +81,27 @@ def test_delete_source_removes_only_its_chunks_and_keeps_metadata_aligned(tmp_pa
     assert store.search(np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32), top_k=1)[0].text == "c0"
 
 
+def test_delete_then_persist_and_reload_keeps_index_and_metadata_aligned(tmp_path) -> None:
+    index_path = str(tmp_path / "index.faiss")
+    store = FaissVectorStore(dimension=4, index_path=index_path)
+    store.add(
+        np.eye(4, dtype=np.float32),
+        texts=["a0", "b0", "a1", "c0"],
+        sources=["a.md", "b.md", "a.md", "c.md"],
+        chunk_indices=[0, 0, 1, 0],
+    )
+    store.delete_source("a.md")
+    store.persist()
+
+    reloaded = FaissVectorStore(dimension=4, index_path=index_path)
+
+    assert reloaded.count() == 2
+    b = reloaded.search(np.array([0.0, 1.0, 0.0, 0.0], dtype=np.float32), top_k=1)[0]
+    c = reloaded.search(np.array([0.0, 0.0, 0.0, 1.0], dtype=np.float32), top_k=1)[0]
+    assert (b.text, b.source, b.score) == ("b0", "b.md", pytest.approx(1.0))
+    assert (c.text, c.source, c.score) == ("c0", "c.md", pytest.approx(1.0))
+
+
 def test_delete_unknown_source_is_a_noop(tmp_path) -> None:
     store = FaissVectorStore(dimension=4, index_path=str(tmp_path / "index.faiss"))
     store.add(np.eye(1, 4, dtype=np.float32), texts=["a"], sources=["a.md"], chunk_indices=[0])
