@@ -28,5 +28,6 @@ class OpenAIChatLLM:
             ]
         )
         # In langchain-core 1.x, `content` may be a list of content blocks instead of a string;
-        # `text` always joins the text blocks into a plain string.
-        return response.text
+        # `text` joins only the text blocks. Since langchain-core 1.8 it is a `TextAccessor`
+        # (a `str` subclass), so convert it to keep the return value a plain `str`.
+        return str(response.text)

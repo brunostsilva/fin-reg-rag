@@ -52,6 +52,33 @@ def test_returns_plain_text_when_the_model_replies_with_content_blocks(invoked: 
     assert answer == "The limit is R$ 1,000.00. Source: pix.md"
 
 
+def test_ignores_non_text_content_blocks(invoked: dict) -> None:
+    # Reasoning and tool-call blocks must not leak into the answer shown to the user.
+    invoked["reply"] = AIMessage(
+        content=[
+            {"type": "reasoning", "reasoning": "The user asks about Pix limits..."},
+            {"type": "text", "text": "R$ 1,000.00 (pix.md)"},
+            {"type": "tool_call", "id": "call_1", "name": "lookup", "args": {}},
+        ]
+    )
+    llm = OpenAIChatLLM(model="gpt-4o-mini", api_key="sk-test")
+
+    answer = llm.generate_answer("What is the nighttime limit?", CHUNKS)
+
+    assert answer == "R$ 1,000.00 (pix.md)"
+
+
+@pytest.mark.parametrize("content", ["plain string", [{"type": "text", "text": "block"}]])
+def test_answer_is_a_plain_str(invoked: dict, content) -> None:
+    # langchain-core 1.8 returns `AIMessage.text` as a `str` subclass (TextAccessor).
+    invoked["reply"] = AIMessage(content=content)
+    llm = OpenAIChatLLM(model="gpt-4o-mini", api_key="sk-test")
+
+    answer = llm.generate_answer("What is the nighttime limit?", CHUNKS)
+
+    assert type(answer) is str
+
+
 def test_factory_builds_the_openai_provider_and_rejects_unknown_ones() -> None:
     assert isinstance(build_llm_provider("openai", model="gpt-4o-mini", api_key="sk-test"), OpenAIChatLLM)
     with pytest.raises(ValueError, match="Unknown LLM provider"):
